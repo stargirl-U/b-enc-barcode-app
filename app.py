@@ -3,13 +3,10 @@ import barcode
 from barcode.writer import ImageWriter
 from PIL import Image
 from pyzbar.pyzbar import decode
-import cv2
 import numpy as np
+import cv2
 import os
 
-# ======================
-# KONFIGURASI
-# ======================
 KEY = "101011"
 BARCODE_DIR = "barcodes"
 os.makedirs(BARCODE_DIR, exist_ok=True)
@@ -36,7 +33,7 @@ def numbers_to_text(nums):
     return text.lower()
 
 # ======================
-# B-ENC CORE
+# B-ENC
 # ======================
 def benc(numbers, mode="encrypt"):
     result = []
@@ -51,7 +48,7 @@ def benc(numbers, mode="encrypt"):
     return result
 
 # ======================
-# BARCODE GENERATOR
+# BARCODE
 # ======================
 def generate_barcode(data):
     code = barcode.get("code128", data, writer=ImageWriter())
@@ -59,11 +56,11 @@ def generate_barcode(data):
     return code.save(path)
 
 # ======================
-# STREAMLIT UI
+# UI
 # ======================
-st.title("🔐 B-ENC Barcode Cipher (Auto Scan & Dekripsi)")
+st.title("🔐 B-ENC Barcode Cipher (Camera Scan)")
 
-menu = st.radio("Mode:", ["Enkripsi → Barcode", "Scan Barcode → Plaintext"])
+menu = st.radio("Mode:", ["Enkripsi → Barcode", "Scan Barcode → Dekripsi"])
 
 # ======================
 # ENKRIPSI
@@ -76,30 +73,26 @@ if menu == "Enkripsi → Barcode":
         cipher_nums = benc(nums, "encrypt")
         cipher_text = "-".join(map(str, cipher_nums))
 
-        st.subheader("Ciphertext (tersimpan di barcode)")
+        st.subheader("Ciphertext")
         st.code(cipher_text)
 
         barcode_path = generate_barcode(cipher_text)
-        img = Image.open(barcode_path)
-
-        st.subheader("Barcode (Scan dengan kamera)")
-        st.image(img)
+        st.image(Image.open(barcode_path), caption="Scan barcode ini")
 
 # ======================
-# SCAN & DEKRIPSI
+# SCAN
 # ======================
-if menu == "Scan Barcode → Plaintext":
-    st.write("Arahkan kamera ke barcode")
+if menu == "Scan Barcode → Dekripsi":
+    st.write("Ambil foto barcode menggunakan kamera")
 
-    image = st.camera_input("Scan Barcode")
+    image = st.camera_input("Kamera")
 
-    if image is not None:
-        # konversi ke OpenCV
+    if image:
         img = Image.open(image)
         img_np = np.array(img)
-        img_cv = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+        img_gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
 
-        decoded = decode(img_cv)
+        decoded = decode(img_gray)
 
         if decoded:
             cipher_text = decoded[0].data.decode("utf-8")
@@ -113,4 +106,4 @@ if menu == "Scan Barcode → Plaintext":
             st.subheader("Plaintext Asli")
             st.success(plaintext)
         else:
-            st.warning("Barcode belum terbaca dengan jelas")
+            st.error("Barcode tidak terbaca, coba ambil foto lebih jelas")
