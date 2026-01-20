@@ -1,7 +1,6 @@
 import streamlit as st
 import qrcode
 from PIL import Image
-from streamlit_qrcode_scanner import qrcode_scanner
 import os
 
 KEY = "101011"
@@ -30,7 +29,7 @@ def numbers_to_text(nums):
     return text.lower()
 
 # ======================
-# B-ENC
+# B-ENC CORE
 # ======================
 def benc(numbers, mode="encrypt"):
     result = []
@@ -47,17 +46,18 @@ def benc(numbers, mode="encrypt"):
 # ======================
 # UI
 # ======================
-st.title("🔐 B-ENC Cipher dengan QR Code (Auto Scan)")
+st.set_page_config(page_title="B-ENC Cipher Web", layout="centered")
+st.title("🔐 B-ENC Cipher Web App")
 
-menu = st.radio("Mode:", ["Enkripsi → QR", "Scan QR → Dekripsi"])
+menu = st.radio("Pilih Mode:", ["Enkripsi → QR Code", "Dekripsi dari Ciphertext"])
 
 # ======================
 # ENKRIPSI
 # ======================
-if menu == "Enkripsi → QR":
+if menu == "Enkripsi → QR Code":
     plaintext = st.text_area("Masukkan Plaintext")
 
-    if st.button("Enkripsi & Buat QR"):
+    if st.button("Enkripsi & Buat QR Code"):
         nums = text_to_numbers(plaintext)
         cipher_nums = benc(nums, "encrypt")
         cipher_text = "-".join(map(str, cipher_nums))
@@ -69,24 +69,24 @@ if menu == "Enkripsi → QR":
         path = os.path.join(QR_DIR, "cipher_qr.png")
         qr.save(path)
 
-        st.subheader("QR Code (Scan Langsung)")
+        st.subheader("QR Code (Scan dengan HP)")
         st.image(Image.open(path))
 
 # ======================
-# SCAN QR
+# DEKRIPSI
 # ======================
-if menu == "Scan QR → Dekripsi":
-    st.write("Arahkan kamera ke QR Code")
+if menu == "Dekripsi dari Ciphertext":
+    cipher_input = st.text_area(
+        "Masukkan Ciphertext (hasil scan QR Code)"
+    )
 
-    scanned = qrcode_scanner()
+    if st.button("Dekripsi"):
+        try:
+            cipher_nums = list(map(int, cipher_input.split("-")))
+            plain_nums = benc(cipher_nums, "decrypt")
+            plaintext = numbers_to_text(plain_nums)
 
-    if scanned:
-        st.subheader("Ciphertext Terdeteksi")
-        st.code(scanned)
-
-        cipher_nums = list(map(int, scanned.split("-")))
-        plain_nums = benc(cipher_nums, "decrypt")
-        plaintext = numbers_to_text(plain_nums)
-
-        st.subheader("Plaintext Asli")
-        st.success(plaintext)
+            st.subheader("Plaintext Asli")
+            st.success(plaintext)
+        except:
+            st.error("Format ciphertext tidak valid")
