@@ -2,20 +2,21 @@ import streamlit as st
 import barcode
 from barcode.writer import ImageWriter
 from PIL import Image
+from pyzbar.pyzbar import decode
+import cv2
+import numpy as np
 import os
 
-# ===============================
+# ======================
 # KONFIGURASI
-# ===============================
+# ======================
 KEY = "101011"
 BARCODE_DIR = "barcodes"
+os.makedirs(BARCODE_DIR, exist_ok=True)
 
-if not os.path.exists(BARCODE_DIR):
-    os.makedirs(BARCODE_DIR)
-
-# ===============================
-# KONVERSI TEKS <-> ANGKA
-# ===============================
+# ======================
+# KONVERSI
+# ======================
 def text_to_numbers(text):
     nums = []
     for c in text.upper():
@@ -34,10 +35,10 @@ def numbers_to_text(nums):
             text += chr(n + 64)
     return text.lower()
 
-# ===============================
+# ======================
 # B-ENC CORE
-# ===============================
-def benc_process(numbers, mode="encrypt"):
+# ======================
+def benc(numbers, mode="encrypt"):
     result = []
     for num in numbers:
         value = num
@@ -49,61 +50,67 @@ def benc_process(numbers, mode="encrypt"):
         result.append(value)
     return result
 
-# ===============================
+# ======================
 # BARCODE GENERATOR
-# ===============================
+# ======================
 def generate_barcode(data):
-    code128 = barcode.get("code128", data, writer=ImageWriter())
-    filename = os.path.join(BARCODE_DIR, "cipher_barcode")
-    saved = code128.save(filename)
-    return saved
+    code = barcode.get("code128", data, writer=ImageWriter())
+    path = os.path.join(BARCODE_DIR, "cipher_barcode")
+    return code.save(path)
 
-# ===============================
+# ======================
 # STREAMLIT UI
-# ===============================
-st.set_page_config(page_title="B-ENC Barcode Cipher", layout="centered")
+# ======================
+st.title("🔐 B-ENC Barcode Cipher (Auto Scan & Dekripsi)")
 
-st.title("🔐 B-ENC Barcode Cipher")
-st.write("Enkripsi & Dekripsi berbasis Barcode (Scannable)")
+menu = st.radio("Mode:", ["Enkripsi → Barcode", "Scan Barcode → Plaintext"])
 
-menu = st.radio("Pilih Mode:", ["Enkripsi → Barcode", "Dekripsi dari Ciphertext"])
-
-# ===============================
+# ======================
 # ENKRIPSI
-# ===============================
+# ======================
 if menu == "Enkripsi → Barcode":
-    plaintext = st.text_area("Masukkan Plaintext:")
+    plaintext = st.text_area("Masukkan Plaintext")
 
     if st.button("Enkripsi & Buat Barcode"):
         nums = text_to_numbers(plaintext)
-        cipher_nums = benc_process(nums, "encrypt")
-        cipher_text = " ".join(map(str, cipher_nums))
+        cipher_nums = benc(nums, "encrypt")
+        cipher_text = "-".join(map(str, cipher_nums))
 
-        st.subheader("Ciphertext (Numerik)")
+        st.subheader("Ciphertext (tersimpan di barcode)")
         st.code(cipher_text)
 
         barcode_path = generate_barcode(cipher_text)
         img = Image.open(barcode_path)
 
-        st.subheader("Barcode (Scannable)")
-        st.image(img, caption="Scan barcode ini untuk mendapatkan ciphertext")
+        st.subheader("Barcode (Scan dengan kamera)")
+        st.image(img)
 
-# ===============================
-# DEKRIPSI
-# ===============================
-elif menu == "Dekripsi dari Ciphertext":
-    cipher_input = st.text_area(
-        "Masukkan Ciphertext (hasil scan barcode, angka dipisah spasi):"
-    )
+# ======================
+# SCAN & DEKRIPSI
+# ======================
+if menu == "Scan Barcode → Plaintext":
+    st.write("Arahkan kamera ke barcode")
 
-    if st.button("Dekripsi"):
-        try:
-            cipher_nums = list(map(int, cipher_input.split()))
-            plain_nums = benc_process(cipher_nums, "decrypt")
+    image = st.camera_input("Scan Barcode")
+
+    if image is not None:
+        # konversi ke OpenCV
+        img = Image.open(image)
+        img_np = np.array(img)
+        img_cv = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+
+        decoded = decode(img_cv)
+
+        if decoded:
+            cipher_text = decoded[0].data.decode("utf-8")
+            st.subheader("Ciphertext Terdeteksi")
+            st.code(cipher_text)
+
+            cipher_nums = list(map(int, cipher_text.split("-")))
+            plain_nums = benc(cipher_nums, "decrypt")
             plaintext = numbers_to_text(plain_nums)
 
-            st.subheader("Plaintext")
+            st.subheader("Plaintext Asli")
             st.success(plaintext)
-
-        except:
-            st.error("Format ciphertext tidak valid.")
+        else:
+            st.warning("Barcode belum terbaca dengan jelas")
