@@ -1,15 +1,12 @@
 import streamlit as st
-import barcode
-from barcode.writer import ImageWriter
+import qrcode
 from PIL import Image
-from pyzbar.pyzbar import decode
-import numpy as np
-import cv2
+from streamlit_qrcode_scanner import qrcode_scanner
 import os
 
 KEY = "101011"
-BARCODE_DIR = "barcodes"
-os.makedirs(BARCODE_DIR, exist_ok=True)
+QR_DIR = "qrcodes"
+os.makedirs(QR_DIR, exist_ok=True)
 
 # ======================
 # KONVERSI
@@ -48,27 +45,19 @@ def benc(numbers, mode="encrypt"):
     return result
 
 # ======================
-# BARCODE
-# ======================
-def generate_barcode(data):
-    code = barcode.get("code128", data, writer=ImageWriter())
-    path = os.path.join(BARCODE_DIR, "cipher_barcode")
-    return code.save(path)
-
-# ======================
 # UI
 # ======================
-st.title("🔐 B-ENC Barcode Cipher (Camera Scan)")
+st.title("🔐 B-ENC Cipher dengan QR Code (Auto Scan)")
 
-menu = st.radio("Mode:", ["Enkripsi → Barcode", "Scan Barcode → Dekripsi"])
+menu = st.radio("Mode:", ["Enkripsi → QR", "Scan QR → Dekripsi"])
 
 # ======================
 # ENKRIPSI
 # ======================
-if menu == "Enkripsi → Barcode":
+if menu == "Enkripsi → QR":
     plaintext = st.text_area("Masukkan Plaintext")
 
-    if st.button("Enkripsi & Buat Barcode"):
+    if st.button("Enkripsi & Buat QR"):
         nums = text_to_numbers(plaintext)
         cipher_nums = benc(nums, "encrypt")
         cipher_text = "-".join(map(str, cipher_nums))
@@ -76,34 +65,28 @@ if menu == "Enkripsi → Barcode":
         st.subheader("Ciphertext")
         st.code(cipher_text)
 
-        barcode_path = generate_barcode(cipher_text)
-        st.image(Image.open(barcode_path), caption="Scan barcode ini")
+        qr = qrcode.make(cipher_text)
+        path = os.path.join(QR_DIR, "cipher_qr.png")
+        qr.save(path)
+
+        st.subheader("QR Code (Scan Langsung)")
+        st.image(Image.open(path))
 
 # ======================
-# SCAN
+# SCAN QR
 # ======================
-if menu == "Scan Barcode → Dekripsi":
-    st.write("Ambil foto barcode menggunakan kamera")
+if menu == "Scan QR → Dekripsi":
+    st.write("Arahkan kamera ke QR Code")
 
-    image = st.camera_input("Kamera")
+    scanned = qrcode_scanner()
 
-    if image:
-        img = Image.open(image)
-        img_np = np.array(img)
-        img_gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
+    if scanned:
+        st.subheader("Ciphertext Terdeteksi")
+        st.code(scanned)
 
-        decoded = decode(img_gray)
+        cipher_nums = list(map(int, scanned.split("-")))
+        plain_nums = benc(cipher_nums, "decrypt")
+        plaintext = numbers_to_text(plain_nums)
 
-        if decoded:
-            cipher_text = decoded[0].data.decode("utf-8")
-            st.subheader("Ciphertext Terdeteksi")
-            st.code(cipher_text)
-
-            cipher_nums = list(map(int, cipher_text.split("-")))
-            plain_nums = benc(cipher_nums, "decrypt")
-            plaintext = numbers_to_text(plain_nums)
-
-            st.subheader("Plaintext Asli")
-            st.success(plaintext)
-        else:
-            st.error("Barcode tidak terbaca, coba ambil foto lebih jelas")
+        st.subheader("Plaintext Asli")
+        st.success(plaintext)
