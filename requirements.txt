@@ -2,4 +2,4 @@ streamlit
 python-barcode
 pillow
 pyzbar
-opencv-python
+opencv-python-headless
