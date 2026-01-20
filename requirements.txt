@@ -1,5 +1,4 @@
 streamlit
-python-barcode
+qrcode
 pillow
-pyzbar
-opencv-python-headless
+streamlit-qrcode-scanner
