@@ -40,6 +40,9 @@ def benc(numbers, mode="encrypt"):
                 value += 3 if bit == "1" else -1
             else:
                 value -= 3 if bit == "1" else +1
+
+        # 🔑 INI KUNCI PERBAIKANNYA
+        value = value % 27
         result.append(value)
     return result
 
