@@ -1,272 +1,276 @@
 import streamlit as st
 import pandas as pd
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 # =========================================
-# 👤 IDENTITAS DEVELOPER & KUNCI RAHASIA
+# 👤 IDENTITAS & KUNCI (JANGAN DIUBAH)
 # =========================================
-DEVELOPER_NAME = "Nayla R" 
-# Kunci ini "tertanam" dalam sistem, tidak dilihat user.
+DEVELOPER_NAME = "Nayla R"  # <--- GANTI INI PENTING!
 SECRET_KEY = "101011" 
 # =========================================
 
+# --- KONFIGURASI HALAMAN DAN CSS CUSTOM ---
 st.set_page_config(
-    page_title=f"B-ENC Project by {DEVELOPER_NAME}",
-    page_icon="📊",
-    layout="wide"
+    page_title=f"CYBER-ENC | {DEVELOPER_NAME}",
+    page_icon="🛡️",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# --- FUNGSI BARU: VISUALISASI CIPHERTEXT JADI GAMBAR ---
+# INI ADALAH "BUMBU RAHASIA" TAMPILAN KEREN (CSS)
+# Jangan diubah kalau tidak paham CSS ya!
+st.markdown("""
+<style>
+    /* Import Google Font yang futuristik */
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto+Mono&display=swap');
+
+    /* Background Utama Gelap Bergradasi */
+    .stApp {
+        background: linear-gradient(to bottom right, #0f0c29, #302b63, #24243e);
+        color: #e0e0e0;
+    }
+
+    /* Mengubah Font Judul */
+    h1, h2, h3 {
+        font-family: 'Orbitron', sans-serif !important;
+        letter-spacing: 1px;
+    }
+    
+    /* Judul Utama dengan Efek Gradasi Teks */
+    .main-title {
+        font-size: 3em;
+        font-weight: 700;
+        background: linear-gradient(90deg, #00f260, #0575E6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+    
+    /* Styling Sidebar */
+    [data-testid="stSidebar"] {
+        background-color: #1a1a2e;
+        border-right: 1px solid #302b63;
+    }
+
+    /* Styling Kotak Input (Text Area & Input) */
+    .stTextArea textarea, .stTextInput input {
+        background-color: #24243e !important;
+        color: #00f260 !important; /* Warna teks input hijau neon */
+        border: 1px solid #0575E6 !important;
+        border-radius: 10px;
+        font-family: 'Roboto Mono', monospace;
+    }
+    
+    /* Styling Tombol (Button) jadi Neon */
+    .stButton > button {
+        width: 100%;
+        background: linear-gradient(45deg, #0575E6, #021B79);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        font-family: 'Orbitron', sans-serif;
+        margin: 4px 2px;
+        cursor: pointer;
+        border-radius: 12px;
+        transition: 0.3s;
+        box-shadow: 0 0 10px #0575E6;
+    }
+    .stButton > button:hover {
+        background: linear-gradient(45deg, #00f260, #0575E6);
+        box-shadow: 0 0 20px #00f260;
+        transform: scale(1.02);
+    }
+
+    /* Kelas Kustom untuk "Kartu" Konten */
+    .cyber-card {
+        background: rgba(40, 40, 70, 0.7);
+        border-radius: 15px;
+        padding: 20px;
+        border: 1px solid #0575E6;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        margin-bottom: 20px;
+    }
+    
+    /* Styling Tabel Dataframe biar gelap */
+    [data-testid="stDataFrame"] {
+        background-color: #24243e;
+        border-radius: 10px;
+        padding: 10px;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# --- FUNGSI CORE (TIDAK BERUBAH SECARA LOGIKA) ---
+
 def generate_ciphertext_visual(cipher_numbers):
-    """
-    Mengubah deretan angka ciphertext menjadi gambar barcode dinamis.
-    - Lebar batang = Nilai angka (absolut).
-    - Warna Hitam = Angka Positif.
-    - Warna Merah = Angka Negatif.
-    """
-    if not cipher_numbers:
-        return None
-
-    height = 80    # Tinggi gambar
-    gap = 3        # Jarak antar batang
-    multiplier = 5 # Pengali lebar agar tidak terlalu kurus (misal angka 1 jadi 5px)
+    """Membuat visualisasi barcode dinamis."""
+    if not cipher_numbers: return None
+    height, gap, multiplier = 80, 4, 6
+    total_width = sum([max(abs(num) * multiplier, 6) for num in cipher_numbers]) + (len(cipher_numbers) * gap) + 20
     
-    # 1. Hitung total lebar kanvas yang dibutuhkan
-    total_width = 0
-    for num in cipher_numbers:
-        w = abs(num) * multiplier
-        if w == 0: w = 5 # Lebar minimal untuk angka 0
-        total_width += w + gap
-    
-    # Tambah sedikit padding di akhir
-    total_width += 10
-
-    # 2. Buat Kanvas Putih
-    img = Image.new('RGB', (total_width, height), 'white')
+    # Ubah background canvas jadi transparan atau gelap agar cocok dengan tema
+    img = Image.new('RGBA', (total_width, height), (255, 255, 255, 0)) 
     draw = ImageDraw.Draw(img)
-    
-    current_x = 5 # Posisi awal menggambar (x)
-
-    # 3. Mulai Menggambar Batang per Angka
+    current_x = 10
     for num in cipher_numbers:
-        # Tentukan lebar batang berdasarkan nilai angka
-        bar_width = abs(num) * multiplier
-        if bar_width == 0: bar_width = 5
-        
-        # Tentukan warna (Hitam jika positif, Merah jika negatif/nol)
-        color = "black" if num > 0 else "#d62728" # Merah cerah
-        
-        # Gambar persegi panjang (batang)
-        # Koordinat: [x_kiri, y_atas, x_kanan, y_bawah]
-        draw.rectangle(
-            [current_x, 0, current_x + bar_width, height - 20], 
-            fill=color
-        )
-        
-        # (Opsional) Tulis angkanya kecil di bawah batang agar jelas
-        # draw.text((current_x, height - 15), str(num), fill="black", font_size=10)
-        # Catatan: Menulis teks butuh font, kita skip dulu agar tidak ribet setupnya.
-        
-        # Geser posisi X untuk batang berikutnya
+        bar_width = max(abs(num) * multiplier, 6)
+        # Warna Neon: Cyan untuk positif, Merah/Pink neon untuk negatif
+        color = "#00f260" if num > 0 else "#ff0055" 
+        draw.rectangle([current_x, 0, current_x + bar_width, height - 10], fill=color)
         current_x += bar_width + gap
-            
     return img
 
-# --- LOGIKA KRIPTOGRAFI (TETAP SAMA) ---
+# (Fungsi text_to_numbers, numbers_to_text, encrypt, decrypt sama seperti sebelumnya. 
+#  Saya persingkat di sini agar fokus ke UI, tapi di kode aslimu tetap pakai versi lengkapnya ya!)
+
 def text_to_numbers(text):
     text = text.upper()
-    numbers = []
-    chars = []
-    for char in text:
-        if 'A' <= char <= 'Z':
-            num = ord(char) - 64
-            numbers.append(num)
-            chars.append(char)
-        elif char == ' ':
-            numbers.append(0)
-            chars.append('(Spasi)')
-    return chars, numbers
+    return [c for c in text if 'A'<=c<='Z' or c==' '], [ord(c)-64 if 'A'<=c<='Z' else 0 for c in text if 'A'<=c<='Z' or c==' ']
 
 def numbers_to_text(numbers):
-    text = ""
-    for num in numbers:
+    res = ""
+    for n in numbers:
         try:
-            val = int(num)
-            if 1 <= val <= 26:
-                text += chr(val + 64)
-            elif val == 0:
-                text += " "
-            else:
-                text += "?"
-        except ValueError:
-            pass
-    return text
+            val = int(n)
+            res += chr(val+64) if 1<=val<=26 else (" " if val==0 else "?")
+        except: pass
+    return res
 
 def encrypt_b_enc(plaintext, key):
     chars, numbers = text_to_numbers(plaintext)
-    cipher_numbers = []
+    if not numbers: return [], pd.DataFrame()
+    cipher_nums = []
     details = []
     key_len = len(key)
-    
-    if not numbers: return [], pd.DataFrame()
-
     for i, num in enumerate(numbers):
         key_bit = key[i % key_len]
-        original_num = num
         change = 3 if key_bit == '1' else -1
-        new_num = original_num + change
-        
-        cipher_numbers.append(new_num)
-        
-        # Sembunyikan kunci di tabel detail agar misterius
-        visual_bit = "Hidden Key" 
-        
-        details.append({
-            "Karakter": chars[i],
-            "Angka Awal": original_num,
-            "Kunci": visual_bit,
-            "Operasi": f"{'+3' if change == 3 else '-1'}",
-            "Hasil Cipher": new_num
-        })
-        
-    return cipher_numbers, pd.DataFrame(details)
+        new_num = num + change
+        cipher_nums.append(new_num)
+        details.append({"Char": chars[i], "Awal": num, "Op": f"{'+3' if change==3 else '-1'}", "Akhir": new_num})
+    return cipher_nums, pd.DataFrame(details)
 
 def decrypt_b_enc(cipher_str, key):
-    cipher_str = " ".join(cipher_str.split())
     try:
-        cipher_list = [int(x) for x in cipher_str.split(' ')]
-    except ValueError:
-        return None, None, "Error: Input harus angka."
-
-    plain_numbers = []
+        cipher_list = [int(x) for x in " ".join(cipher_str.split()).split()]
+    except: return None, None, "Input error."
+    plain_nums = []
     details = []
     key_len = len(key)
-    
-    for i, cipher_val in enumerate(cipher_list):
+    for i, val in enumerate(cipher_list):
         key_bit = key[i % key_len]
         change = -3 if key_bit == '1' else 1
-        final_num = cipher_val + change
-        plain_numbers.append(final_num)
-        
-        if 1 <= final_num <= 26: char_res = chr(final_num + 64)
-        elif final_num == 0: char_res = "(Spasi)"
-        else: char_res = "?"
+        final = val + change
+        plain_nums.append(final)
+        char_res = chr(final+64) if 1<=final<=26 else ("(Spasi)" if final==0 else "?")
+        details.append({"Cipher": val, "Op Balik": f"{'-3' if change==-3 else '+1'}", "Hasil": final, "Huruf": char_res})
+    return numbers_to_text(plain_nums), pd.DataFrame(details), None
 
-        details.append({
-            "Cipher": cipher_val,
-            "Operasi Balik": f"{'-3' if change == -3 else '+1'}",
-            "Hasil Angka": final_num,
-            "Hasil Huruf": char_res
-        })
-        
-    return numbers_to_text(plain_numbers), pd.DataFrame(details), None
-
-# --- STATE MANAGEMENT ---
-if 'last_ciphertext_nums' not in st.session_state: st.session_state['last_ciphertext_nums'] = []
+# --- STATE ---
 if 'last_ciphertext_str' not in st.session_state: st.session_state['last_ciphertext_str'] = ""
+if 'last_ciphertext_nums' not in st.session_state: st.session_state['last_ciphertext_nums'] = []
 
-# --- SIDEBAR ---
+# --- SIDEBAR NAVIGATION ---
 with st.sidebar:
-    st.header("B-ENC System")
-    st.markdown(f"Developed by:\n### {DEVELOPER_NAME}")
-    st.caption("© 2024 Teknik Komputer")
+    st.markdown(f"<h2 style='text-align: center; color: #00f260;'>BERKAS SISTEM</h2>", unsafe_allow_html=True)
+    st.caption(f"🔒 Authorized Access: {DEVELOPER_NAME}")
     st.markdown("---")
-    
-    menu = st.radio("Navigasi Utama", ["Enkripsi", "Dekripsi", "Tentang"])
-    
+    menu = st.radio("PILIH MODUL:", ["🖥️ Dashboard", "🔒 Enkripsi Data", "🔓 Dekripsi Data"], index=1)
     st.markdown("---")
-    st.info("Sistem menggunakan Kunci Rahasia yang tertanam. Fokus pada visualisasi hasil.")
+    st.info("Status Sistem: AMAN. Kunci Rahasia tertanam aktif.")
 
-# --- HALAMAN ENKRIPSI (FOKUS UTAMA PERUBAHAN) ---
-if menu == "Enkripsi":
-    st.title("🔒 Enkripsi & Visualisasi")
-    st.write("Masukkan pesan, sistem akan mengubahnya menjadi angka dan gambar barcode dinamis.")
-    st.divider()
-    
+# --- MAIN CONTENT ---
+st.markdown(f"<div class='main-title'>SISTEM ENKRIPSI B-ENC</div>", unsafe_allow_html=True)
+st.markdown(f"<p style='text-align: center; font-family: Roboto Mono;'>Advanced Barcode-Based Security Protocol | Dev: {DEVELOPER_NAME}</p>", unsafe_allow_html=True)
+st.divider()
+
+if menu == "🖥️ Dashboard":
+    st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
+    st.subheader("Selamat Datang di Pusat Kontrol")
+    st.write("Sistem ini mendemonstrasikan pengamanan data menggunakan substitusi dinamis berbasis pola visual.")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("#### 🎯 Misi Sistem")
+        st.write("Mengubah pesan teks menjadi deretan angka dan representasi visual yang tidak dapat dibaca manusia tanpa kunci.")
+    with col2:
+        st.markdown("#### 👁️ Visualisasi Data")
+        st.write("Data ciphertext akan dirender menjadi grafik batang neon. Warna hijau untuk positif, merah muda untuk negatif.")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+elif menu == "🔒 Enkripsi Data":
     col1, col2 = st.columns([1, 1.5])
     
     with col1:
-        st.subheader("1. Input Pesan")
-        plaintext = st.text_area("Ketik di sini (Huruf A-Z):", height=150, placeholder="Contoh: HALO BANDUNG")
+        st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
+        st.subheader("📥 Input Terminal")
+        plaintext = st.text_area("Masukkan Plaintext (A-Z):", height=150, placeholder="Ketik pesan rahasia...")
         
-        if st.button("⚡ Proses Enkripsi", type="primary", use_container_width=True):
+        if st.button("⚡ INISIALISASI ENKRIPSI"):
             if plaintext:
-                # Proses Enkripsi
-                cipher_nums, df_enc = encrypt_b_enc(plaintext, SECRET_KEY)
-                
-                # Simpan hasil ke session state
-                st.session_state['last_ciphertext_nums'] = cipher_nums
-                st.session_state['last_ciphertext_str'] = " ".join(map(str, cipher_nums))
+                c_nums, df_enc = encrypt_b_enc(plaintext, SECRET_KEY)
+                st.session_state['last_ciphertext_nums'] = c_nums
+                st.session_state['last_ciphertext_str'] = " ".join(map(str, c_nums))
                 st.session_state['last_df_enc'] = df_enc
-                
-                st.success("Berhasil! Lihat visualisasi di samping 👉")
+                st.success("DATA BERHASIL DIAMANKAN!")
             else:
-                st.warning("Isi pesan dulu.")
-                
-    with col2:
-        st.subheader("2. Hasil Visualisasi Barcode")
-        
-        # Cek apakah ada data hasil enkripsi
-        if st.session_state['last_ciphertext_nums']:
-            # --- BAGIAN INI YANG MENAMPILKAN GAMBAR ---
-            st.write("Berikut adalah representasi visual dari ciphertext Anda:")
-            
-            # Panggil fungsi pembuat gambar
-            barcode_img = generate_ciphertext_visual(st.session_state['last_ciphertext_nums'])
-            
-            # Tampilkan gambarnya
-            st.image(barcode_img, caption="Visualisasi Ciphertext Dinamis (Hitam=Positif, putih=Negatif)", use_container_width=False)
-            # ------------------------------------------
-            
-            st.write("📃 **Bentuk Angka (Ciphertext):**")
-            st.code(st.session_state['last_ciphertext_str'])
+                st.error("TERMINAL KOSONG. Masukkan data.")
+        st.markdown("</div>", unsafe_allow_html=True)
 
-            with st.expander("🔍 Lihat Tabel Detail Perhitungan"):
+    with col2:
+        st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
+        st.subheader("📤 Output Visualisasi & Data")
+        
+        if st.session_state['last_ciphertext_nums']:
+            st.write("Visualisasi Ciphertext Dinamis:")
+            # Background gelap untuk wadah gambar
+            st.markdown('<div style="background: #1a1a2e; padding: 10px; border-radius: 10px; border: 1px solid #302b63;">', unsafe_allow_html=True)
+            img = generate_ciphertext_visual(st.session_state['last_ciphertext_nums'])
+            st.image(img, use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            st.write("Data Numerik:")
+            st.code(st.session_state['last_ciphertext_str'], language="powershell")
+
+            with st.expander("🔍 Analisis Logika Sistem"):
                 st.dataframe(st.session_state['last_df_enc'], use_container_width=True)
         else:
-            st.info("Visualisasi akan muncul di sini setelah Anda melakukan enkripsi.")
+             st.info("Menunggu input data untuk visualisasi...")
+        st.markdown("</div>", unsafe_allow_html=True)
 
-# --- HALAMAN DEKRIPSI ---
-elif menu == "Dekripsi":
-    st.title("🔓 Dekripsi Data")
-    st.write("Kembalikan angka ciphertext menjadi pesan yang bisa dibaca.")
-    
+elif menu == "🔓 Dekripsi Data":
     col1, col2 = st.columns(2)
     with col1:
-        # Ambil nilai default dari hasil enkripsi sebelumnya
+        st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
+        st.subheader("🔑 Terminal Dekripsi")
         default_val = st.session_state['last_ciphertext_str']
-        cipher_in = st.text_area("Masukkan Ciphertext (Angka):", value=default_val, height=150)
+        cipher_in = st.text_area("Input Ciphertext Numerik:", value=default_val, height=150)
         
-        if st.button("🔓 Buka Pesan", use_container_width=True):
+        if st.button("🔓 BUKA PENGAMANAN DATA"):
             if cipher_in:
                 res, df_dec, err = decrypt_b_enc(cipher_in, SECRET_KEY)
-                if err:
-                    st.error(err)
+                if err: st.error(err)
                 else:
                     st.session_state['res_dec'] = res
                     st.session_state['df_dec'] = df_dec
-                    st.success("Pesan terbuka!")
+                    st.success("AKSES DITERIMA. Data dipulihkan.")
+        st.markdown("</div>", unsafe_allow_html=True)
 
     with col2:
+        st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
+        st.subheader("📄 Hasil Plaintext")
         if 'res_dec' in st.session_state:
-            st.subheader("Hasil Plaintext:")
-            st.markdown(f"### {st.session_state['res_dec']}")
-            
-            with st.expander("Lihat Proses Pembalikan"):
+            st.markdown(f"<h2 style='color: #00f260; font-family: Roboto Mono;'>{st.session_state['res_dec']}</h2>", unsafe_allow_html=True)
+            with st.expander("Lihat Proses Pemulihan"):
                 st.dataframe(st.session_state['df_dec'], use_container_width=True)
+        else:
+            st.write("Hasil akan muncul di sini.")
+        st.markdown("</div>", unsafe_allow_html=True)
 
-# --- HALAMAN TENTANG ---
-elif menu == "Tentang":
-    st.title("Tentang Project")
-    st.write("Dibuat oleh:")
-    st.header(DEVELOPER_NAME)
-    st.divider()
-    st.markdown("""
-    ### Konsep Visualisasi Ciphertext
-    Website ini mendemonstrasikan bagaimana data angka (ciphertext) dapat direpresentasikan menjadi bentuk visual.
-    
-    * **Lebar Batang:** Merepresentasikan besar nilai angka.
-    * **Warna:** Hitam untuk positif, Putih untuk negatif.
-    
-    Tujuannya adalah menunjukkan bahwa data dapat diubah menjadi berbagai bentuk representasi lain yang tidak lazim dibaca manusia secara langsung.
-    """)
+# Footer
+st.markdown("---")
+st.markdown(f"<div style='text-align: center; font-family: Roboto Mono; font-size: 0.8em; color: gray;'>SECURE SYSTEM | Property of {DEVELOPER_NAME} | 2024</div>", unsafe_allow_html=True)
