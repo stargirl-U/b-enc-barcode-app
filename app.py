@@ -1,8 +1,11 @@
 import streamlit as st
 import pandas as pd
-from PIL import Image, ImageDraw
+from PIL import Image
 import requests
 from streamlit_lottie import st_lottie
+import barcode
+from barcode.writer import ImageWriter
+from io import BytesIO
 
 # =========================================
 # 👤 CONFIGURATION
@@ -13,30 +16,27 @@ APP_TITLE = "B-ENC PROTOCOL"
 # =========================================
 
 st.set_page_config(
-    page_title=f"{APP_TITLE} | {DEVELOPER_NAME}",
+    page_title=f"{APP_TITLE}",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # =========================================
-# 🎬 FUNGSI ANIMASI (LOTTIE)
+# 🎬 FUNGSI ANIMASI & GAMBAR
 # =========================================
 def load_lottieurl(url):
     try:
         r = requests.get(url)
-        if r.status_code != 200:
-            return None
+        if r.status_code != 200: return None
         return r.json()
-    except:
-        return None
+    except: return None
 
-# Load Animasi
 lottie_security = load_lottieurl("https://assets5.lottiefiles.com/packages/lf20_5rImXb.json")
 lottie_coding = load_lottieurl("https://assets1.lottiefiles.com/packages/lf20_w51pcehl.json")
 
 # =========================================
-# 🎨 CUSTOM CSS (ANIMATED BACKGROUND)
+# 🎨 CUSTOM CSS
 # =========================================
 st.markdown("""
 <style>
@@ -120,7 +120,7 @@ st.markdown("""
 
     .barcode-container {
         background-color: white;
-        padding: 20px;
+        padding: 15px;
         border-radius: 8px;
         display: flex;
         justify-content: center;
@@ -131,37 +131,32 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================
-# 🧠 LOGIC & FUNCTIONS
+# 🧠 LOGIC: SCANNABLE BARCODE GENERATOR
 # =========================================
 
-def generate_real_barcode_visual(cipher_numbers):
-    if not cipher_numbers: return None
-    multiplier = 4
-    height = 120
-    estimated_width = (len(cipher_numbers) * 6 * multiplier) + 100
+def generate_scannable_barcode(data_string):
+    """
+    Membuat Barcode ASLI standar Code 128.
+    Bisa discan oleh Google Lens.
+    """
+    if not data_string: return None
     
-    img = Image.new('RGB', (estimated_width, height), 'white')
-    draw = ImageDraw.Draw(img)
-    current_x = 20
+    # Menggunakan Code 128 karena support angka, spasi, dan minus
+    Code128 = barcode.get_barcode_class('code128')
     
-    draw.rectangle([current_x, 0, current_x + multiplier, height], fill="black")
-    current_x += multiplier * 2
-    draw.rectangle([current_x, 0, current_x + multiplier, height], fill="black")
-    current_x += multiplier * 2
+    # Simpan ke memori (BytesIO) bukan file fisik
+    rv = BytesIO()
     
-    for num in cipher_numbers:
-        unit_width = (abs(num) % 4) + 1
-        pixel_width = unit_width * multiplier
-        draw.rectangle([current_x, 0, current_x + pixel_width, height - 15], fill="black")
-        current_x += pixel_width
-        current_x += multiplier * 2
-        
-    draw.rectangle([current_x, 0, current_x + multiplier, height], fill="black")
-    current_x += multiplier * 2
-    draw.rectangle([current_x, 0, current_x + multiplier, height], fill="black")
-    current_x += multiplier + 20
+    # Generate gambar
+    # writer=ImageWriter() memastikan outputnya gambar PNG, bukan SVG
+    code = Code128(data_string, writer=ImageWriter())
     
-    return img.crop((0, 0, current_x, height))
+    # Tulis gambar ke variabel rv
+    # module_height=10.0 mengatur tinggi batang
+    # text_distance=5.0 mengatur jarak teks di bawah batang
+    code.write(rv, options={"module_height": 10.0, "text_distance": 3.0, "quiet_zone": 2.0})
+    
+    return rv
 
 def text_to_numbers(text):
     text = text.upper()
@@ -229,16 +224,15 @@ if 'last_cipher_nums' not in st.session_state: st.session_state['last_cipher_num
 # 📱 LAYOUT & UI
 # =========================================
 
-# --- SIDEBAR ---
 with st.sidebar:
-    # ANIMASI DI SIDEBAR
     if lottie_security:
         st_lottie(lottie_security, height=150, key="security")
     else:
-        # === BAGIAN INI YANG DIGANTI UNTUK LOGO ===
-        # Menampilkan logo B-ENC dari file lokal
-        st.image("image_0.png", use_container_width=True)
-        # ==========================================
+        # Menampilkan LOGO KAMU (Pastikan file image_0.png ada di Github)
+        try:
+            st.image("image_0.png", use_container_width=True)
+        except:
+            st.warning("Upload 'image_0.png' to GitHub!")
         
     st.markdown("### SYSTEM CONTROL")
     st.markdown("---")
@@ -249,26 +243,30 @@ with st.sidebar:
     st.caption("Secure Key Status:")
     st.progress(100)
 
-# --- MAIN HEADER ---
 st.markdown(f"<div class='gradient-text'>{APP_TITLE}</div>", unsafe_allow_html=True)
-st.markdown(f"<p style='text-align: center; opacity: 0.7;'>Secure Barcode Visualization System</p>", unsafe_allow_html=True)
+st.markdown(f"<p style='text-align: center; opacity: 0.7;'>Scannable Barcode Security System</p>", unsafe_allow_html=True)
 st.write("") 
 
-# --- DASHBOARD ---
 if menu == "Dashboard":
     col1, col2 = st.columns([1.5, 1])
     with col1:
         st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
         st.subheader("👋 Welcome back!")
         st.write(f"System is ready.")
-        st.markdown("This tool demonstrates how **B-ENC Algorithm** transforms standard text into numeric cipher.")
+        st.markdown("""
+        **Fitur Baru (v4.0):**
+        Sistem sekarang menghasilkan **Standard Code 128 Barcode**.
+        
+        Artinya:
+        1.  Enkripsi pesan kamu.
+        2.  Arahkan kamera HP (Google Lens) ke layar laptop.
+        3.  Google Lens akan membaca angka ciphertext-nya!
+        """)
         st.markdown("</div>", unsafe_allow_html=True)
     with col2:
-        # ANIMASI DASHBOARD
         if lottie_coding:
             st_lottie(lottie_coding, height=200, key="coding")
 
-# --- ENCRYPTION ---
 elif menu == "Encryption":
     col_left, col_right = st.columns([1, 1.2])
     
@@ -277,14 +275,14 @@ elif menu == "Encryption":
         st.subheader("1. Input Data")
         plaintext = st.text_area("Plaintext:", height=120, placeholder="Type message here...")
         
-        if st.button("Generate Secure Barcode ⚡"):
+        if st.button("Generate Scannable Barcode ⚡"):
             if plaintext:
-                with st.spinner("Encrypting data..."): # Animasi Loading Bawaan
+                with st.spinner("Generating Standard Code 128..."):
                     c_nums, df_enc = encrypt_b_enc(plaintext, SECRET_KEY)
                     st.session_state['last_cipher_nums'] = c_nums
                     st.session_state['last_cipher_str'] = " ".join(map(str, c_nums))
                     st.session_state['last_df_enc'] = df_enc
-                st.toast("Encryption Successful!", icon="✅")
+                st.toast("Barcode Generated!", icon="✅")
             else:
                 st.toast("Please enter text first.", icon="⚠️")
         st.markdown("</div>", unsafe_allow_html=True)
@@ -292,14 +290,18 @@ elif menu == "Encryption":
     with col_right:
         if st.session_state['last_cipher_nums']:
             st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-            st.subheader("2. Result")
+            st.subheader("2. Result (Scannable)")
             
-            st.write("**Generated Label:**")
+            st.write("**Google Lens Ready Barcode:**")
+            # --- BAGIAN BARCODE ASLI ---
             st.markdown('<div class="barcode-container">', unsafe_allow_html=True)
-            img = generate_real_barcode_visual(st.session_state['last_cipher_nums'])
-            st.image(img, use_container_width=False)
+            # Panggil fungsi pembuat barcode scannable
+            barcode_img = generate_scannable_barcode(st.session_state['last_cipher_str'])
+            st.image(barcode_img, use_container_width=False)
             st.markdown('</div>', unsafe_allow_html=True)
+            # ---------------------------
             
+            st.caption("💡 Tips: Buka Google Lens di HP, lalu scan barcode di atas.")
             st.write("**Ciphertext Data:**")
             st.code(st.session_state['last_cipher_str'], language="text")
             
@@ -309,7 +311,6 @@ elif menu == "Encryption":
         else:
             st.info("Waiting for input...")
 
-# --- DECRYPTION ---
 elif menu == "Decryption":
     col_left, col_right = st.columns([1, 1.2])
     
@@ -317,11 +318,11 @@ elif menu == "Decryption":
         st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
         st.subheader("Scanner Input")
         default_val = st.session_state['last_cipher_str']
-        cipher_in = st.text_area("Cipher Numbers:", value=default_val, height=120)
+        cipher_in = st.text_area("Cipher Numbers (Result from Scan):", value=default_val, height=120)
         
         if st.button("Decrypt Data 🔓"):
             if cipher_in:
-                with st.spinner("Deciphering..."): # Animasi Loading
+                with st.spinner("Deciphering..."):
                     res, df_dec, err = decrypt_b_enc(cipher_in, SECRET_KEY)
                     if err: st.error(err)
                     else:
@@ -341,6 +342,5 @@ elif menu == "Decryption":
                 st.dataframe(st.session_state['df_dec'], use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
-# --- FOOTER ---
 st.markdown("---")
-st.markdown(f"<div style='text-align: center; color: #666; font-size: 12px;'>SECURE ENCRYPTION SYSTEM V3.0 (Animated) <br> Developed by {DEVELOPER_NAME}</div>", unsafe_allow_html=True)
+st.markdown(f"<div style='text-align: center; color: #666; font-size: 12px;'>SECURE ENCRYPTION SYSTEM V4.0 (Scannable) <br> Developed by {DEVELOPER_NAME}</div>", unsafe_allow_html=True)
