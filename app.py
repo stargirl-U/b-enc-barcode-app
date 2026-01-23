@@ -234,7 +234,6 @@ if 'last_cipher_nums' not in st.session_state: st.session_state['last_cipher_num
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/9373/9373886.png", width=60)
     st.markdown("### SYSTEM CONTROL")
-    st.markdown(f"<div class='status-badge'>Dev: {DEVELOPER_NAME}</div>", unsafe_allow_html=True)
     st.markdown("---")
     
     menu = st.radio("NAVIGATION", ["Dashboard", "Encryption", "Decryption"], label_visibility="collapsed")
@@ -255,7 +254,7 @@ if menu == "Dashboard":
     with col1:
         st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
         st.subheader("👋 Welcome back!")
-        st.write(f"System is ready, **{DEVELOPER_NAME}**.")
+        st.write(f"System is ready.")
         st.markdown("This tool demonstrates how **B-ENC Algorithm** transforms standard text into numeric cipher and generates realistic retail-style barcodes.")
         st.markdown("</div>", unsafe_allow_html=True)
     with col2:
