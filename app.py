@@ -1,11 +1,13 @@
 import streamlit as st
 import pandas as pd
 from PIL import Image, ImageDraw
+import requests
+from streamlit_lottie import st_lottie
 
 # =========================================
 # 👤 CONFIGURATION
 # =========================================
-DEVELOPER_NAME = "Nayla R"  # <--- GANTI NAMA KAMU
+DEVELOPER_NAME = "Nayla R" 
 SECRET_KEY = "101011"
 APP_TITLE = "B-ENC PROTOCOL"
 # =========================================
@@ -18,16 +20,36 @@ st.set_page_config(
 )
 
 # =========================================
-# 🎨 CUSTOM CSS (GLASSMORPHISM THEME)
+# 🎬 FUNGSI ANIMASI (LOTTIE)
+# =========================================
+def load_lottieurl(url):
+    r = requests.get(url)
+    if r.status_code != 200:
+        return None
+    return r.json()
+
+# Load Animasi (Saya pilihkan animasi Security Shield yang keren)
+lottie_security = load_lottieurl("https://assets5.lottiefiles.com/packages/lf20_5rImXb.json")
+lottie_coding = load_lottieurl("https://assets1.lottiefiles.com/packages/lf20_w51pcehl.json")
+
+# =========================================
+# 🎨 CUSTOM CSS (ANIMATED BACKGROUND)
 # =========================================
 st.markdown("""
 <style>
-    /* Import Fonts */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
 
-    /* Global Style */
+    /* ANIMASI BACKGROUND BERGERAK */
+    @keyframes gradient {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
     .stApp {
-        background: radial-gradient(circle at top left, #1b003a, #0d0d1a, #000000);
+        background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e, #1a1a2e);
+        background-size: 400% 400%;
+        animation: gradient 15s ease infinite; /* Ini yang bikin gerak! */
         font-family: 'Inter', sans-serif;
         color: #e0e0e0;
     }
@@ -39,12 +61,6 @@ st.markdown("""
         border-right: 1px solid rgba(255, 255, 255, 0.1);
     }
     
-    /* Headers */
-    h1, h2, h3 {
-        font-weight: 800 !important;
-        letter-spacing: -0.5px;
-    }
-    
     .gradient-text {
         background: linear-gradient(135deg, #00C6FF, #0072FF);
         -webkit-background-clip: text;
@@ -53,9 +69,10 @@ st.markdown("""
         font-weight: 800;
         text-align: center;
         margin-bottom: 0.5rem;
+        text-shadow: 0px 0px 20px rgba(0, 198, 255, 0.3);
     }
 
-    /* Glass Card Container */
+    /* Glass Card */
     .glass-card {
         background: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -64,10 +81,9 @@ st.markdown("""
         margin-bottom: 20px;
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         backdrop-filter: blur(4px);
-        -webkit-backdrop-filter: blur(4px);
     }
 
-    /* Input Fields styling */
+    /* Input & Button */
     .stTextArea textarea, .stTextInput input {
         background-color: rgba(0, 0, 0, 0.3) !important;
         border: 1px solid rgba(255, 255, 255, 0.2) !important;
@@ -76,7 +92,6 @@ st.markdown("""
         font-family: 'JetBrains Mono', monospace;
     }
     
-    /* Custom Button */
     .stButton > button {
         background: linear-gradient(90deg, #00C6FF 0%, #0072FF 100%);
         color: white;
@@ -84,18 +99,15 @@ st.markdown("""
         padding: 12px 24px;
         border-radius: 12px;
         font-weight: 600;
-        letter-spacing: 0.5px;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(0, 114, 255, 0.3);
         width: 100%;
     }
     
     .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0, 114, 255, 0.5);
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 0 20px rgba(0, 114, 255, 0.6);
     }
     
-    /* Badge Style */
     .status-badge {
         display: inline-block;
         padding: 4px 12px;
@@ -107,7 +119,6 @@ st.markdown("""
         border: 1px solid rgba(0, 255, 136, 0.2);
     }
 
-    /* Barcode Label Effect */
     .barcode-container {
         background-color: white;
         padding: 20px;
@@ -116,7 +127,6 @@ st.markdown("""
         justify-content: center;
         align-items: center;
         margin-top: 10px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -126,39 +136,32 @@ st.markdown("""
 # =========================================
 
 def generate_real_barcode_visual(cipher_numbers):
-    """Generates a realistic looking retail barcode (B/W)."""
     if not cipher_numbers: return None
     multiplier = 4
     height = 120
-    # Hitung lebar estimasi
     estimated_width = (len(cipher_numbers) * 6 * multiplier) + 100
     
     img = Image.new('RGB', (estimated_width, height), 'white')
     draw = ImageDraw.Draw(img)
     current_x = 20
     
-    # Guard Bar Start
     draw.rectangle([current_x, 0, current_x + multiplier, height], fill="black")
     current_x += multiplier * 2
     draw.rectangle([current_x, 0, current_x + multiplier, height], fill="black")
     current_x += multiplier * 2
     
-    # Data Bars
     for num in cipher_numbers:
-        # Modulo 4 ensures bars are 1, 2, 3, or 4 units wide
         unit_width = (abs(num) % 4) + 1
         pixel_width = unit_width * multiplier
         draw.rectangle([current_x, 0, current_x + pixel_width, height - 15], fill="black")
         current_x += pixel_width
-        current_x += multiplier * 2 # Spasi putih
+        current_x += multiplier * 2
         
-    # Guard Bar End
     draw.rectangle([current_x, 0, current_x + multiplier, height], fill="black")
     current_x += multiplier * 2
     draw.rectangle([current_x, 0, current_x + multiplier, height], fill="black")
     current_x += multiplier + 20
     
-    # Crop to fit
     return img.crop((0, 0, current_x, height))
 
 def text_to_numbers(text):
@@ -178,10 +181,7 @@ def encrypt_b_enc(plaintext, key):
     chars, numbers = text_to_numbers(plaintext)
     if not numbers: return [], pd.DataFrame()
     
-    # === [FIXED] BAGIAN INI SUDAH DIPERBAIKI ===
     cipher_nums = []  
-    # ===========================================
-    
     details = []
     key_len = len(key)
     for i, num in enumerate(numbers):
@@ -202,7 +202,7 @@ def encrypt_b_enc(plaintext, key):
 def decrypt_b_enc(cipher_str, key):
     try:
         cipher_list = [int(x) for x in " ".join(cipher_str.split()).split()]
-    except: return None, None, "Format Error: Input must be numbers separated by spaces."
+    except: return None, None, "Format Error"
     
     plain_nums = []
     details = []
@@ -232,36 +232,40 @@ if 'last_cipher_nums' not in st.session_state: st.session_state['last_cipher_num
 
 # --- SIDEBAR ---
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/9373/9373886.png", width=60)
+    # ANIMASI DI SIDEBAR
+    if lottie_security:
+        st_lottie(lottie_security, height=150, key="security")
+    else:
+        st.image("https://cdn-icons-png.flaticon.com/512/9373/9373886.png", width=60)
+        
     st.markdown("### SYSTEM CONTROL")
+    st.markdown(f"<div class='status-badge'>Dev: {DEVELOPER_NAME}</div>", unsafe_allow_html=True)
     st.markdown("---")
     
     menu = st.radio("NAVIGATION", ["Dashboard", "Encryption", "Decryption"], label_visibility="collapsed")
     
     st.markdown("---")
-    st.markdown("**Secure Key Status:**")
+    st.caption("Secure Key Status:")
     st.progress(100)
-    st.caption("Active & Hardcoded")
 
 # --- MAIN HEADER ---
 st.markdown(f"<div class='gradient-text'>{APP_TITLE}</div>", unsafe_allow_html=True)
 st.markdown(f"<p style='text-align: center; opacity: 0.7;'>Secure Barcode Visualization System</p>", unsafe_allow_html=True)
-st.write("") # Spacer
+st.write("") 
 
 # --- DASHBOARD ---
 if menu == "Dashboard":
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns([1.5, 1])
     with col1:
         st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
         st.subheader("👋 Welcome back!")
-        st.write(f"System is ready.")
-        st.markdown("This tool demonstrates how **B-ENC Algorithm** transforms standard text into numeric cipher and generates realistic retail-style barcodes.")
+        st.write(f"System is ready, **{DEVELOPER_NAME}**.")
+        st.markdown("This tool demonstrates how **B-ENC Algorithm** transforms standard text into numeric cipher.")
         st.markdown("</div>", unsafe_allow_html=True)
     with col2:
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        st.metric(label="Algorithm Type", value="Symmetric", delta="B-ENC")
-        st.metric(label="Visualization", value="Dynamic Barcode", delta="Generated")
-        st.markdown("</div>", unsafe_allow_html=True)
+        # ANIMASI DASHBOARD
+        if lottie_coding:
+            st_lottie(lottie_coding, height=200, key="coding")
 
 # --- ENCRYPTION ---
 elif menu == "Encryption":
@@ -270,15 +274,15 @@ elif menu == "Encryption":
     with col_left:
         st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
         st.subheader("1. Input Data")
-        st.caption("Enter text to generate barcode")
         plaintext = st.text_area("Plaintext:", height=120, placeholder="Type message here...")
         
         if st.button("Generate Secure Barcode ⚡"):
             if plaintext:
-                c_nums, df_enc = encrypt_b_enc(plaintext, SECRET_KEY)
-                st.session_state['last_cipher_nums'] = c_nums
-                st.session_state['last_cipher_str'] = " ".join(map(str, c_nums))
-                st.session_state['last_df_enc'] = df_enc
+                with st.spinner("Encrypting data..."): # Animasi Loading Bawaan
+                    c_nums, df_enc = encrypt_b_enc(plaintext, SECRET_KEY)
+                    st.session_state['last_cipher_nums'] = c_nums
+                    st.session_state['last_cipher_str'] = " ".join(map(str, c_nums))
+                    st.session_state['last_df_enc'] = df_enc
                 st.toast("Encryption Successful!", icon="✅")
             else:
                 st.toast("Please enter text first.", icon="⚠️")
@@ -289,14 +293,11 @@ elif menu == "Encryption":
             st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
             st.subheader("2. Result")
             
-            # --- BAGIAN VISUAL BARCODE ---
             st.write("**Generated Label:**")
-            # Container putih khusus gambar
             st.markdown('<div class="barcode-container">', unsafe_allow_html=True)
             img = generate_real_barcode_visual(st.session_state['last_cipher_nums'])
             st.image(img, use_container_width=False)
             st.markdown('</div>', unsafe_allow_html=True)
-            # -----------------------------
             
             st.write("**Ciphertext Data:**")
             st.code(st.session_state['last_cipher_str'], language="text")
@@ -314,19 +315,18 @@ elif menu == "Decryption":
     with col_left:
         st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
         st.subheader("Scanner Input")
-        st.caption("Enter the numeric sequence from the barcode")
-        
         default_val = st.session_state['last_cipher_str']
         cipher_in = st.text_area("Cipher Numbers:", value=default_val, height=120)
         
         if st.button("Decrypt Data 🔓"):
             if cipher_in:
-                res, df_dec, err = decrypt_b_enc(cipher_in, SECRET_KEY)
-                if err: st.error(err)
-                else:
-                    st.session_state['res_dec'] = res
-                    st.session_state['df_dec'] = df_dec
-                    st.toast("Decryption Complete!", icon="🔓")
+                with st.spinner("Deciphering..."): # Animasi Loading
+                    res, df_dec, err = decrypt_b_enc(cipher_in, SECRET_KEY)
+                    if err: st.error(err)
+                    else:
+                        st.session_state['res_dec'] = res
+                        st.session_state['df_dec'] = df_dec
+                        st.toast("Decryption Complete!", icon="🔓")
         st.markdown("</div>", unsafe_allow_html=True)
         
     with col_right:
@@ -342,4 +342,4 @@ elif menu == "Decryption":
 
 # --- FOOTER ---
 st.markdown("---")
-st.markdown(f"<div style='text-align: center; color: #666; font-size: 12px;'>SECURE ENCRYPTION SYSTEM V2.0 <br> Developed by {DEVELOPER_NAME}</div>", unsafe_allow_html=True)
+st.markdown(f"<div style='text-align: center; color: #666; font-size: 12px;'>SECURE ENCRYPTION SYSTEM V3.0 (Animated) <br> Developed by {DEVELOPER_NAME}</div>", unsafe_allow_html=True)
