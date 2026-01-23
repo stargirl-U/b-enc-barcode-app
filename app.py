@@ -7,13 +7,13 @@ from streamlit_lottie import st_lottie
 # =========================================
 # 👤 CONFIGURATION
 # =========================================
-DEVELOPER_NAME = "Nayla R" 
+DEVELOPER_NAME = "Nayla R"
 SECRET_KEY = "101011"
 APP_TITLE = "B-ENC PROTOCOL"
 # =========================================
 
 st.set_page_config(
-    page_title=f"{APP_TITLE}",
+    page_title=f"{APP_TITLE} | {DEVELOPER_NAME}",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -23,12 +23,15 @@ st.set_page_config(
 # 🎬 FUNGSI ANIMASI (LOTTIE)
 # =========================================
 def load_lottieurl(url):
-    r = requests.get(url)
-    if r.status_code != 200:
+    try:
+        r = requests.get(url)
+        if r.status_code != 200:
+            return None
+        return r.json()
+    except:
         return None
-    return r.json()
 
-# Load Animasi (Saya pilihkan animasi Security Shield yang keren)
+# Load Animasi
 lottie_security = load_lottieurl("https://assets5.lottiefiles.com/packages/lf20_5rImXb.json")
 lottie_coding = load_lottieurl("https://assets1.lottiefiles.com/packages/lf20_w51pcehl.json")
 
@@ -39,7 +42,6 @@ st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
 
-    /* ANIMASI BACKGROUND BERGERAK */
     @keyframes gradient {
         0% { background-position: 0% 50%; }
         50% { background-position: 100% 50%; }
@@ -49,12 +51,11 @@ st.markdown("""
     .stApp {
         background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e, #1a1a2e);
         background-size: 400% 400%;
-        animation: gradient 15s ease infinite; /* Ini yang bikin gerak! */
+        animation: gradient 15s ease infinite;
         font-family: 'Inter', sans-serif;
         color: #e0e0e0;
     }
 
-    /* Sidebar Styling */
     [data-testid="stSidebar"] {
         background-color: rgba(15, 15, 25, 0.6);
         backdrop-filter: blur(10px);
@@ -72,7 +73,6 @@ st.markdown("""
         text-shadow: 0px 0px 20px rgba(0, 198, 255, 0.3);
     }
 
-    /* Glass Card */
     .glass-card {
         background: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -83,7 +83,6 @@ st.markdown("""
         backdrop-filter: blur(4px);
     }
 
-    /* Input & Button */
     .stTextArea textarea, .stTextInput input {
         background-color: rgba(0, 0, 0, 0.3) !important;
         border: 1px solid rgba(255, 255, 255, 0.2) !important;
@@ -236,10 +235,12 @@ with st.sidebar:
     if lottie_security:
         st_lottie(lottie_security, height=150, key="security")
     else:
-        st.image("https://cdn-icons-png.flaticon.com/512/9373/9373886.png", width=60)
+        # === BAGIAN INI YANG DIGANTI UNTUK LOGO ===
+        # Menampilkan logo B-ENC dari file lokal
+        st.image("image_0.png", use_container_width=True)
+        # ==========================================
         
     st.markdown("### SYSTEM CONTROL")
-    st.markdown(f"<div class='status-badge'>Dev: {DEVELOPER_NAME}</div>", unsafe_allow_html=True)
     st.markdown("---")
     
     menu = st.radio("NAVIGATION", ["Dashboard", "Encryption", "Decryption"], label_visibility="collapsed")
@@ -259,7 +260,7 @@ if menu == "Dashboard":
     with col1:
         st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
         st.subheader("👋 Welcome back!")
-        st.write(f"System is ready, **{DEVELOPER_NAME}**.")
+        st.write(f"System is ready.")
         st.markdown("This tool demonstrates how **B-ENC Algorithm** transforms standard text into numeric cipher.")
         st.markdown("</div>", unsafe_allow_html=True)
     with col2:
