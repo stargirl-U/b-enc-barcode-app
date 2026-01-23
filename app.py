@@ -184,7 +184,7 @@ with st.sidebar:
 
 # === HALAMAN BERANDA ===
 if selected_menu == "🏠 Beranda":
-    st.title(f"Selamat Datang, {DEVELOPER_NAME}!")
+    st.title(f"Selamat Datang!")
     st.subheader("Sistem Demonstrasi Kriptografi B-ENC")
     st.divider()
     
