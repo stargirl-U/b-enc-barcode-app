@@ -1,94 +1,88 @@
 import streamlit as st
-import qrcode
-from PIL import Image
-import os
+import pandas as pd
+
+from benc_cipher import encrypt_benc, decrypt_benc
+from barcode_utils import draw_barcode
+from theory import show_theory
 
 KEY = "101011"
-QR_DIR = "qrcodes"
-os.makedirs(QR_DIR, exist_ok=True)
 
-# ======================
-# KONVERSI
-# ======================
-def text_to_numbers(text):
-    nums = []
-    for c in text.upper():
-        if c == " ":
-            nums.append(0)
-        elif c.isalpha():
-            nums.append(ord(c) - 64)
-    return nums
+st.set_page_config(page_title="B-ENC Cipher", layout="wide")
 
-def numbers_to_text(nums):
-    text = ""
-    for n in nums:
-        if n == 0:
-            text += " "
-        elif 1 <= n <= 26:
-            text += chr(n + 64)
-    return text.lower()
+menu = st.sidebar.selectbox(
+    "Navigasi",
+    ["Home", "Teori Kriptografi", "Enkripsi", "Dekripsi", "Visualisasi Barcode", "About"]
+)
 
-# ======================
-# B-ENC CORE
-# ======================
-def benc(numbers, mode="encrypt"):
-    result = []
-    for num in numbers:
-        value = num
-        for bit in KEY:
-            if mode == "encrypt":
-                value += 3 if bit == "1" else -1
-            else:
-                value -= 3 if bit == "1" else +1
+# ---------------- HOME ----------------
+if menu == "Home":
+    st.title("🔐 B-ENC : Barcode-Based Encryption Cipher")
+    st.write("""
+    Website edukasi kriptografi yang mendemonstrasikan proses
+    enkripsi dan dekripsi menggunakan **pola barcode biner**.
+    """)
+    st.info("Website ini bersifat edukatif dan tidak ditujukan untuk keamanan data nyata.")
 
-        value = value % 27   # WAJIB
-        result.append(value)
-    return result
+# ---------------- TEORI ----------------
+elif menu == "Teori Kriptografi":
+    show_theory()
 
-# ======================
-# UI
-# ======================
-st.set_page_config(page_title="B-ENC Cipher Web", layout="centered")
-st.title("🔐 B-ENC Cipher Web App")
+# ---------------- ENKRIPSI ----------------
+elif menu == "Enkripsi":
+    st.header("🔐 Enkripsi B-ENC")
 
-menu = st.radio("Pilih Mode:", ["Enkripsi → QR Code", "Dekripsi dari Ciphertext"])
+    plaintext = st.text_input("Masukkan Plaintext")
+    st.text(f"Kunci Barcode (Fixed): {KEY}")
 
-# ======================
-# ENKRIPSI
-# ======================
-if menu == "Enkripsi → QR Code":
-    plaintext = st.text_area("Masukkan Plaintext")
+    if st.button("Enkripsi"):
+        cipher, table = encrypt_benc(plaintext)
 
-    if st.button("Enkripsi & Buat QR Code"):
-        nums = text_to_numbers(plaintext)
-        cipher_nums = benc(nums, "encrypt")
-        cipher_text = "-".join(map(str, cipher_nums))
+        st.success("Ciphertext berhasil dibuat")
+        st.write("**Ciphertext:**", cipher)
 
-        st.subheader("Ciphertext")
-        st.code(cipher_text)
+        st.subheader("Tabel Proses Enkripsi")
+        st.dataframe(pd.DataFrame(table))
 
-        qr = qrcode.make(cipher_text)
-        path = os.path.join(QR_DIR, "cipher_qr.png")
-        qr.save(path)
+        st.subheader("Visualisasi Barcode Kunci")
+        fig = draw_barcode(KEY)
+        st.pyplot(fig)
 
-        st.subheader("QR Code (Scan dengan HP)")
-        st.image(Image.open(path))
+# ---------------- DEKRIPSI ----------------
+elif menu == "Dekripsi":
+    st.header("🔓 Dekripsi B-ENC")
 
-# ======================
-# DEKRIPSI
-# ======================
-if menu == "Dekripsi dari Ciphertext":
-    cipher_input = st.text_area(
-        "Masukkan Ciphertext (hasil scan QR Code)"
-    )
+    cipher_input = st.text_input("Masukkan Ciphertext (pisahkan dengan koma, contoh: 11,12,5)")
+    st.text(f"Kunci Barcode (Fixed): {KEY}")
 
     if st.button("Dekripsi"):
         try:
-            cipher_nums = list(map(int, cipher_input.split("-")))
-            plain_nums = benc(cipher_nums, "decrypt")
-            plaintext = numbers_to_text(plain_nums)
+            cipher_nums = [int(x.strip()) for x in cipher_input.split(",")]
+            plaintext, table = decrypt_benc(cipher_nums)
 
-            st.subheader("Plaintext Asli")
-            st.success(plaintext)
+            st.success("Plaintext berhasil dikembalikan")
+            st.write("**Plaintext:**", plaintext)
+
+            st.subheader("Tabel Proses Dekripsi")
+            st.dataframe(pd.DataFrame(table))
         except:
-            st.error("Format ciphertext tidak valid")
+            st.error("Format ciphertext salah!")
+
+# ---------------- BARCODE ----------------
+elif menu == "Visualisasi Barcode":
+    st.header("🧾 Visualisasi Barcode Kunci")
+
+    st.markdown("""
+    **Hitam = 1**  
+    **Putih = 0**
+    """)
+
+    fig = draw_barcode(KEY)
+    st.pyplot(fig)
+
+# ---------------- ABOUT ----------------
+elif menu == "About":
+    st.header("ℹ️ Tentang B-ENC")
+    st.write("""
+    Proyek B-ENC dikembangkan sebagai media pembelajaran kriptografi
+    simetris berbasis barcode untuk mahasiswa informatika.
+    """)
