@@ -1,3 +1,4 @@
 streamlit
 pandas
 Pillow
+pip install streamlit-lottie requests
