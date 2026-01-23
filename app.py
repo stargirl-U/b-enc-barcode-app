@@ -11,7 +11,7 @@ APP_TITLE = "B-ENC PROTOCOL"
 # =========================================
 
 st.set_page_config(
-    page_title=f"{APP_TITLE} | {DEVELOPER_NAME}",
+    page_title=f"{APP_TITLE}",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -145,6 +145,7 @@ def generate_real_barcode_visual(cipher_numbers):
     
     # Data Bars
     for num in cipher_numbers:
+        # Modulo 4 ensures bars are 1, 2, 3, or 4 units wide
         unit_width = (abs(num) % 4) + 1
         pixel_width = unit_width * multiplier
         draw.rectangle([current_x, 0, current_x + pixel_width, height - 15], fill="black")
@@ -157,6 +158,7 @@ def generate_real_barcode_visual(cipher_numbers):
     draw.rectangle([current_x, 0, current_x + multiplier, height], fill="black")
     current_x += multiplier + 20
     
+    # Crop to fit
     return img.crop((0, 0, current_x, height))
 
 def text_to_numbers(text):
@@ -175,20 +177,33 @@ def numbers_to_text(numbers):
 def encrypt_b_enc(plaintext, key):
     chars, numbers = text_to_numbers(plaintext)
     if not numbers: return [], pd.DataFrame()
-    cipher_nums, []
+    
+    # === [FIXED] BAGIAN INI SUDAH DIPERBAIKI ===
+    cipher_nums = []  
+    # ===========================================
+    
     details = []
     key_len = len(key)
     for i, num in enumerate(numbers):
         key_bit = key[i % key_len]
         change = 3 if key_bit == '1' else -1
         new_num = num + change
-        details.append({"Char": chars[i], "Val": num, "Bit": "◼" if key_bit=='1' else "◻", "Mod": f"{'+3' if change==3 else '-1'}", "Cipher": new_num})
-    return [d['Cipher'] for d in details], pd.DataFrame(details)
+        cipher_nums.append(new_num)
+        
+        details.append({
+            "Char": chars[i], 
+            "Val": num, 
+            "Bit": "◼" if key_bit=='1' else "◻", 
+            "Mod": f"{'+3' if change==3 else '-1'}", 
+            "Cipher": new_num
+        })
+    return cipher_nums, pd.DataFrame(details)
 
 def decrypt_b_enc(cipher_str, key):
     try:
         cipher_list = [int(x) for x in " ".join(cipher_str.split()).split()]
-    except: return None, None, "Format Error"
+    except: return None, None, "Format Error: Input must be numbers separated by spaces."
+    
     plain_nums = []
     details = []
     key_len = len(key)
@@ -197,8 +212,14 @@ def decrypt_b_enc(cipher_str, key):
         change = -3 if key_bit == '1' else 1
         final = val + change
         plain_nums.append(final)
+        
         char_res = chr(final+64) if 1<=final<=26 else ("(Spasi)" if final==0 else "?")
-        details.append({"Cipher": val, "Mod": f"{'-3' if change==-3 else '+1'}", "Result": final, "Char": char_res})
+        details.append({
+            "Cipher": val, 
+            "Mod": f"{'-3' if change==-3 else '+1'}", 
+            "Result": final, 
+            "Char": char_res
+        })
     return numbers_to_text(plain_nums), pd.DataFrame(details), None
 
 # --- STATE ---
